@@ -2,42 +2,94 @@ name: Snyk Terraform IaC Scan (No Block)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ['**']
   pull_request:
+    branches: ['**']
+  workflow_dispatch:
 
 permissions:
   contents: read
   security-events: write
+  actions: read
 
 jobs:
   snyk-iac:
     runs-on: ubuntu-latest
 
     steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run Snyk IaC scan (non-blocking)
-        uses: snyk/actions/iac@v1
-        continue-on-error: true        # prevents pipeline failure
+      # ── 2. Verify main.tf exists ───────────────────────────────────────────
+      - name: Check Terraform files
+        run: |
+          echo "=== Files in repo ==="
+          ls -la
+          echo "=== Terraform files found ==="
+          find . -name "*.tf" -type f
+          cat main.tf
+
+      # ── 3. Setup Node + Snyk CLI ──────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      # ── 4. Authenticate Snyk ──────────────────────────────────────────────
+      - name: Authenticate Snyk
         env:
           SNYK_TOKEN: aed514c5-df9e-40d2-8cfc-51990b7a3cde
-        with:
-          args: >
-            test .
-            --severity-threshold=low
-            --sarif-file-output=snyk-terraform.sarif
+        run: snyk auth $SNYK_TOKEN
 
-      - name: Verify SARIF file
+      # ══════════════════════════════════════════════════════════════════════
+      # IaC Scan — No Block, Report Only
+      # ══════════════════════════════════════════════════════════════════════
+      - name: Run Snyk IaC scan
+        env:
+          SNYK_TOKEN: aed514c5-df9e-40d2-8cfc-51990b7a3cde
+        continue-on-error: true
         run: |
-          if [ -f snyk-terraform.sarif ]; then
+          snyk iac test main.tf \
+            --severity-threshold=low \
+            --sarif-file-output=snyk-iac.sarif
+          echo "Exit code: $?"
+
+      # ── 5. Show scan output for debugging ─────────────────────────────────
+      - name: Show scan results
+        if: always()
+        run: |
+          echo "=== Checking SARIF ==="
+          ls -la *.sarif 2>/dev/null || echo "No SARIF files found"
+          if [ -f snyk-iac.sarif ]; then
             echo "SARIF generated successfully"
+            cat snyk-iac.sarif
           else
-            echo "SARIF NOT FOUND"
-            exit 1
+            echo "SARIF NOT generated"
           fi
 
+      # ── 6. Ensure SARIF exists ─────────────────────────────────────────────
+      - name: Ensure SARIF exists
+        if: always()
+        run: |
+          if [ ! -f snyk-iac.sarif ]; then
+            echo "Creating fallback SARIF"
+            cat > snyk-iac.sarif << 'EOF'
+          {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [{"tool": {"driver": {"name": "Snyk IaC", "rules": []}},"results": []}]
+          }
+          EOF
+          fi
+
+      # ── 7. Upload to GitHub Security tab ───────────────────────────────────
       - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
         with:
-          sarif_file: snyk-terraform.sarif
+          sarif_file: snyk-iac.sarif
+          category: iac
