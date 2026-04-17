@@ -1,86 +1,54 @@
 provider "aws" {
-  region = "us-west-2"
+  region = "us-east-1"
 }
 
-# Publicly Accessible S3 Bucket with No Encryption (HIGH)
-resource "aws_s3_bucket" "insecure_bucket" {
-  bucket = "my-insecure-bucket-12345"
-  acl    = "public-read-write"
+# Public S3 Bucket (HIGH)
+resource "aws_s3_bucket" "public_bucket" {
+  bucket = "vulnerable-public-bucket"
+  acl    = "public-read"
 }
 
-# Security Group Allowing All Traffic (CRITICAL)
-resource "aws_security_group" "open_all" {
-  name = "open-all-sg"
+# Security Group Open to the World (CRITICAL)
+resource "aws_security_group" "open_ssh" {
+  name = "open-ssh-sg"
 
   ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
-# EC2 Instance with Hardcoded Key Pair (MEDIUM)
-resource "aws_instance" "insecure_ec2" {
-  ami           = "ami-0abcdef1234567890"
+# EC2 Instance with Public IP (MEDIUM)
+resource "aws_instance" "public_ec2" {
+  ami           = "ami-0c02fb55956c7d316"
   instance_type = "t2.micro"
-
-  key_name = "my-keypair"
 
   associate_public_ip_address = true
 }
 
-# RDS Database Publicly Accessible (CRITICAL)
-resource "aws_db_instance" "public_db" {
-  allocated_storage    = 20
-  engine               = "postgres"
-  instance_class       = "db.t3.micro"
-  username             = "root"
-  password             = "root123"
-  publicly_accessible  = true
-  skip_final_snapshot  = true
-  storage_encrypted    = false
+# Unencrypted RDS with Hardcoded Credentials (CRITICAL)
+resource "aws_db_instance" "insecure_db" {
+  allocated_storage   = 20
+  engine              = "mysql"
+  instance_class      = "db.t3.micro"
+  username            = "admin"
+  password            = "password123"
+  skip_final_snapshot = true
+  storage_encrypted   = false
 }
 
-# Unrestricted Network ACL (HIGH)
-resource "aws_network_acl" "open_acl" {
-  vpc_id = "vpc-12345678"
-
-  ingress {
-    rule_no    = 100
-    protocol   = "-1"
-    action     = "allow"
-    cidr_block = "0.0.0.0/0"
-    from_port  = 0
-    to_port    = 0
-  }
-
-  egress {
-    rule_no    = 100
-    protocol   = "-1"
-    action     = "allow"
-    cidr_block = "0.0.0.0/0"
-    from_port  = 0
-    to_port    = 0
-  }
+# Unencrypted EBS Volume (MEDIUM)
+resource "aws_ebs_volume" "unencrypted_volume" {
+  availability_zone = "us-east-1a"
+  size              = 10
+  encrypted         = false
 }
 
-# Unencrypted EBS Snapshot (MEDIUM)
-resource "aws_ebs_snapshot" "unencrypted_snapshot" {
-  volume_id = "vol-12345678"
-}
-
-# IAM Role with Full Access (CRITICAL)
-resource "aws_iam_role_policy" "full_access" {
-  name = "full-access-policy"
-  role = "example-role"
+# IAM Policy with Full Admin Access (CRITICAL)
+resource "aws_iam_policy" "admin_policy" {
+  name = "admin-policy"
 
   policy = jsonencode({
     Version = "2012-10-17"
