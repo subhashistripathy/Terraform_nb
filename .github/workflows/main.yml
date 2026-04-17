@@ -21,7 +21,7 @@ jobs:
         uses: snyk/actions/iac@v1
         continue-on-error: true        # prevents pipeline failure
         env:
-          SNYK_TOKEN: c80a2012-bb87-4482-beb5-399c664f183d
+          SNYK_TOKEN: aed514c5-df9e-40d2-8cfc-51990b7a3cde
         with:
           args: >
             test .
