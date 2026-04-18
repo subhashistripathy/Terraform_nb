@@ -2,7 +2,7 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# ── 1. CRITICAL — S3 Bucket Fully Public ──────────────────────────────────────
+# 1. CRITICAL — S3 Bucket Fully Public 
 resource "aws_s3_bucket" "public_bucket" {
   bucket = "vulnerable-public-bucket"
   acl    = "public-read-write"         # anyone can read AND write
@@ -21,7 +21,7 @@ resource "aws_s3_bucket_policy" "public_policy" {
   })
 }
 
-# ── 2. CRITICAL — Security Group Open to World ────────────────────────────────
+# 2. CRITICAL — Security Group Open to World 
 resource "aws_security_group" "open_all" {
   name = "open-all-sg"
 
@@ -54,7 +54,7 @@ resource "aws_security_group" "open_all" {
   }
 }
 
-# ── 3. CRITICAL — RDS with Hardcoded Credentials + No Encryption ──────────────
+# 3. CRITICAL — RDS with Hardcoded Credentials + No Encryption 
 resource "aws_db_instance" "insecure_db" {
   allocated_storage       = 20
   engine                  = "mysql"
@@ -70,7 +70,7 @@ resource "aws_db_instance" "insecure_db" {
   multi_az                = false
 }
 
-# ── 4. CRITICAL — IAM Full Admin Access ───────────────────────────────────────
+# 4. CRITICAL — IAM Full Admin Access 
 resource "aws_iam_policy" "admin_policy" {
   name = "full-admin-policy"
   policy = jsonencode({
@@ -92,7 +92,7 @@ resource "aws_iam_user_policy_attachment" "admin_attach" {
   policy_arn = aws_iam_policy.admin_policy.arn
 }
 
-# ── 5. CRITICAL — Hardcoded AWS Credentials ───────────────────────────────────
+# 5. CRITICAL — Hardcoded AWS Credentials 
 provider "aws" {
   alias      = "hardcoded"
   region     = "us-east-1"
@@ -100,7 +100,7 @@ provider "aws" {
   secret_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"  # hardcoded secret
 }
 
-# ── 6. MEDIUM — EC2 with Public IP + No IMDSv2 ────────────────────────────────
+# 6. MEDIUM — EC2 with Public IP + No IMDSv2 
 resource "aws_instance" "public_ec2" {
   ami                         = "ami-0c02fb55956c7d316"
   instance_type               = "t2.micro"
@@ -118,14 +118,14 @@ resource "aws_instance" "public_ec2" {
   EOF
 }
 
-# ── 7. MEDIUM — Unencrypted EBS Volume ────────────────────────────────────────
+# 7. MEDIUM — Unencrypted EBS Volume 
 resource "aws_ebs_volume" "unencrypted_volume" {
   availability_zone = "us-east-1a"
   size              = 10
   encrypted         = false                  # no encryption
 }
 
-# ── 8. HIGH — CloudTrail Logging Disabled ─────────────────────────────────────
+# 8. HIGH — CloudTrail Logging Disabled 
 resource "aws_cloudtrail" "insecure_trail" {
   name                          = "insecure-trail"
   s3_bucket_name                = aws_s3_bucket.public_bucket.id
@@ -134,14 +134,14 @@ resource "aws_cloudtrail" "insecure_trail" {
   enable_log_file_validation    = false      # no log validation
 }
 
-# ── 9. HIGH — KMS Key with No Rotation ────────────────────────────────────────
+# 9. HIGH — KMS Key with No Rotation 
 resource "aws_kms_key" "no_rotation" {
   description             = "KMS key without rotation"
   enable_key_rotation     = false            # key never rotates
   deletion_window_in_days = 7
 }
 
-# ── 10. HIGH — ElasticSearch Domain Publicly Accessible ───────────────────────
+# 10. HIGH — ElasticSearch Domain Publicly Accessible 
 resource "aws_elasticsearch_domain" "public_es" {
   domain_name           = "vulnerable-es"
   elasticsearch_version = "7.10"
@@ -165,7 +165,7 @@ resource "aws_elasticsearch_domain" "public_es" {
   }
 }
 
-# ── 11. HIGH — Lambda with Full Admin Role ────────────────────────────────────
+# 11. HIGH — Lambda with Full Admin Role 
 resource "aws_iam_role" "lambda_admin" {
   name = "lambda-admin-role"
   assume_role_policy = jsonencode({
@@ -190,19 +190,19 @@ resource "aws_iam_role_policy" "lambda_admin_policy" {
   })
 }
 
-# ── 12. MEDIUM — SQS Queue Not Encrypted ──────────────────────────────────────
+# 12. MEDIUM — SQS Queue Not Encrypted 
 resource "aws_sqs_queue" "unencrypted_queue" {
   name                    = "unencrypted-queue"
   kms_master_key_id       = ""             # no encryption key
 }
 
-# ── 13. MEDIUM — SNS Topic Not Encrypted ──────────────────────────────────────
+# 13. MEDIUM — SNS Topic Not Encrypted 
 resource "aws_sns_topic" "unencrypted_topic" {
   name              = "unencrypted-topic"
   kms_master_key_id = ""                   # no encryption
 }
 
-# ── 14. HIGH — ECR Repository Public + No Scan ────────────────────────────────
+# 14. HIGH — ECR Repository Public + No Scan 
 resource "aws_ecr_repository" "vulnerable_repo" {
   name                 = "vulnerable-repo"
   image_tag_mutability = "MUTABLE"         # tags can be overwritten
@@ -212,7 +212,7 @@ resource "aws_ecr_repository" "vulnerable_repo" {
   }
 }
 
-# ── 15. HIGH — VPC Flow Logs Disabled ─────────────────────────────────────────
+# 15. HIGH — VPC Flow Logs Disabled 
 resource "aws_vpc" "insecure_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
@@ -220,7 +220,7 @@ resource "aws_vpc" "insecure_vpc" {
   # no flow logs configured              # network traffic not logged
 }
 
-# ── 16. MEDIUM — Secrets Manager Secret Not Rotated ──────────────────────────
+# 16. MEDIUM Secrets Manager Secret Not Rotated 
 resource "aws_secretsmanager_secret" "no_rotation" {
   name                    = "my-secret"
   recovery_window_in_days = 0            # immediate deletion, no recovery
