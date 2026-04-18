@@ -17,11 +17,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ── 1. Checkout ────────────────────────────────────────────────────────
+      # 1. Checkout 
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── 2. Verify main.tf exists ───────────────────────────────────────────
+      # 2. Verify main.tf exists 
       - name: Check Terraform files
         run: |
           echo "=== Files in repo ==="
@@ -30,7 +30,7 @@ jobs:
           find . -name "*.tf" -type f
           cat main.tf
 
-      # ── 3. Setup Node + Snyk CLI ──────────────────────────────────────────
+      # 3. Setup Node + Snyk CLI 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -39,15 +39,15 @@ jobs:
       - name: Install Snyk CLI
         run: npm install -g snyk
 
-      # ── 4. Authenticate Snyk ──────────────────────────────────────────────
+      # 4. Authenticate Snyk 
       - name: Authenticate Snyk
         env:
           SNYK_TOKEN: aed514c5-df9e-40d2-8cfc-51990b7a3cde
         run: snyk auth $SNYK_TOKEN
 
-      # ══════════════════════════════════════════════════════════════════════
+      # 
       # IaC Scan — No Block, Report Only
-      # ══════════════════════════════════════════════════════════════════════
+      # 
       - name: Run Snyk IaC scan
         env:
           SNYK_TOKEN: aed514c5-df9e-40d2-8cfc-51990b7a3cde
@@ -58,7 +58,7 @@ jobs:
             --sarif-file-output=snyk-iac.sarif
           echo "Exit code: $?"
 
-      # ── 5. Show scan output for debugging ─────────────────────────────────
+      # 5. Show scan output for debugging 
       - name: Show scan results
         if: always()
         run: |
@@ -71,7 +71,7 @@ jobs:
             echo "SARIF NOT generated"
           fi
 
-      # ── 6. Ensure SARIF exists ─────────────────────────────────────────────
+      # 6. Ensure SARIF exists 
       - name: Ensure SARIF exists
         if: always()
         run: |
@@ -86,7 +86,7 @@ jobs:
           EOF
           fi
 
-      # ── 7. Upload to GitHub Security tab ───────────────────────────────────
+      # 7. Upload to GitHub Security tab 
       - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
         if: always()
