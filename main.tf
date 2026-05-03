@@ -5,7 +5,7 @@ provider "aws" {
 # 1. CRITICAL — S3 Bucket Fully Public 
 resource "aws_s3_bucket" "public_bucket" {
   bucket = "vulnerable-public-bucket"
-  acl    = "public-read-write"         # anyone can read AND write
+  acl    = "public-read-write"         
 }
 
 resource "aws_s3_bucket_policy" "public_policy" {
@@ -14,8 +14,8 @@ resource "aws_s3_bucket_policy" "public_policy" {
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = "*"                  # anyone in the world
-      Action    = "s3:*"              # full access
+      Principal = "*"                  
+      Action    = "s3:*"              
       Resource  = "*"
     }]
   })
